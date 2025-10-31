@@ -75,6 +75,7 @@ function createColorPreview(dark) {
 
     const colorPreview = document.createElement('div');
     colorPreview.id = 'color-picker-preview';
+    colorPreview.style.all = 'unset';
     Object.assign(colorPreview.style, {
         position: 'fixed',
         bottom: '10px',
@@ -90,6 +91,7 @@ function createColorPreview(dark) {
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '20px',
+        fontFamily: 'system-ui',
         backgroundColor: dark ? 'black' : 'white',
     });
     colorPreview.textContent = dark ? '🌙' : '☀️';

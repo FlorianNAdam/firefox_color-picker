@@ -17,5 +17,10 @@
       ],
       "run_at": "document_end"
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "color-picker@example.com"
+    }
+  }
 }

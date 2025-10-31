@@ -1,21 +1,3 @@
-// Create the color preview circle
-const colorPreview = document.createElement('div');
-colorPreview.id = 'color-picker-preview';
-Object.assign(colorPreview.style, {
-    position: 'fixed',
-    bottom: '10px',
-    right: '10px',
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    border: '2px solid #fff',
-    boxShadow: '0 0 5px rgba(0,0,0,0.5)',
-    pointerEvents: 'none',
-    zIndex: '9999',
-    backgroundColor: 'transparent'
-});
-document.body.appendChild(colorPreview);
-
 // --- Helper functions ---
 
 function parseColor(colorStr) {
@@ -53,11 +35,92 @@ function getFinalColor(el) {
     return blendColors(color, parentColor);
 }
 
-// --- Update preview on mouse move ---
-document.addEventListener('mousemove', (e) => {
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const finalColor = getFinalColor(el);
-    const rgb = `rgb(${finalColor.r}, ${finalColor.g}, ${finalColor.b})`;
+const colorCache = new WeakMap();
+function getColorAt(x, y) {
+    const element = document.elementFromPoint(x, y);
+    if (colorCache.has(element)) {
+        return colorCache.get(element);
+    }
+    const color = getFinalColor(element);
+    colorCache.set(element, color);
+    return color;
+}
 
+function isPageDark(step = 100) {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const brightnessValues = [];
+
+    for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+            const color = getColorAt(x, y);
+
+            const brightness = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+            brightnessValues.push(brightness);
+        }
+    }
+
+    brightnessValues.sort((a, b) => a - b);
+    const mid = Math.floor(brightnessValues.length / 2);
+    const medianBrightness = brightnessValues.length % 2 === 0
+        ? (brightnessValues[mid - 1] + brightnessValues[mid]) / 2
+        : brightnessValues[mid];
+
+    return medianBrightness < 128;
+}
+
+function createColorPreview(dark) {
+    let existing = document.getElementById('color-picker-preview');
+    if (existing) return existing;
+
+    const colorPreview = document.createElement('div');
+    colorPreview.id = 'color-picker-preview';
+    Object.assign(colorPreview.style, {
+        position: 'fixed',
+        bottom: '10px',
+        right: '10px',
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        border: '2px solid #fff',
+        boxShadow: '0 0 5px rgba(0,0,0,0.5)',
+        pointerEvents: 'none',
+        zIndex: '9999',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '20px',
+        backgroundColor: dark ? 'black' : 'white',
+    });
+    colorPreview.textContent = dark ? '🌙' : '☀️';
+    document.body.appendChild(colorPreview);
+
+    const rect = colorPreview.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const color = getColorAt(centerX, centerY);
+    colorPreview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+    
+    return colorPreview;
+}
+
+const dark = isPageDark(100);
+let colorPreview = createColorPreview(dark);
+
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        mutation.removedNodes.forEach((node) => {
+            if (node.id === 'color-picker-preview') {
+                colorPreview = createColorPreview(dark);
+            }
+        });
+    });
+});
+observer.observe(document.body, { childList: true });
+
+document.addEventListener('mousemove', (e) => {
+    let color = getColorAt(e.clientX, e.clientY);
+    
+    const rgb = `rgb(${color.r}, ${color.g}, ${color.b})`;
     colorPreview.style.backgroundColor = rgb;
 });

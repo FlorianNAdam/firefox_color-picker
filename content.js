@@ -70,40 +70,48 @@ function isPageDark(step = 100) {
 }
 
 function createColorPreview(dark) {
-    let existing = document.getElementById('color-picker-preview');
-    if (existing) return existing;
+    let host = document.getElementById('color-picker-host');
+    if (!host) {
+        host = document.createElement('color-picker-host');
+        host.id = 'color-picker-host';
+        document.body.appendChild(host);
+        const shadow = host.attachShadow({ mode: 'open' });
 
-    const colorPreview = document.createElement('div');
-    colorPreview.id = 'color-picker-preview';
-    colorPreview.style.all = 'unset';
-    Object.assign(colorPreview.style, {
-        position: 'fixed',
-        bottom: '10px',
-        right: '10px',
-        width: '40px',
-        height: '40px',
-        borderRadius: '50%',
-        border: '2px solid #fff',
-        boxShadow: '0 0 5px rgba(0,0,0,0.5)',
-        pointerEvents: 'none',
-        zIndex: '9999',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '20px',
-        fontFamily: 'system-ui',
-        backgroundColor: dark ? 'black' : 'white',
-    });
-    colorPreview.textContent = dark ? '🌙' : '☀️';
-    document.body.appendChild(colorPreview);
+        const preview = document.createElement('div');
+        preview.id = 'color-picker-preview';
+        Object.assign(preview.style, {
+            all: 'unset',
+            position: 'fixed',
+            bottom: '10px',
+            right: '10px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            border: '2px solid #fff',
+            boxShadow: '0 0 5px rgba(0,0,0,0.5)',
+            pointerEvents: 'none',
+            zIndex: '9999',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            fontFamily: 'system-ui',
+            backgroundColor: dark ? 'black' : 'white',
+        });
+        preview.textContent = dark ? '🌙' : '☀️';
 
-    const rect = colorPreview.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const color = getColorAt(centerX, centerY);
-    colorPreview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
-    
-    return colorPreview;
+        shadow.appendChild(preview);
+
+        const rect = preview.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const color = getColorAt(centerX, centerY);
+        preview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
+
+        return preview;
+    } else {
+        return host.shadowRoot.querySelector('#color-picker-preview');
+    }
 }
 
 const dark = isPageDark(100);

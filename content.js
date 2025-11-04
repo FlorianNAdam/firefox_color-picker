@@ -1,5 +1,4 @@
 // --- Helper functions ---
-
 function parseColor(colorStr) {
     const rgba = colorStr.match(/rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/);
     if (!rgba) return {r: 255, g: 255, b: 255, a: 1}; // fallback white
@@ -9,6 +8,13 @@ function parseColor(colorStr) {
         b: parseInt(rgba[3]),
         a: rgba[4] !== undefined ? parseFloat(rgba[4]) : 1
     };
+}
+
+function rgbToHex(r, g, b) {
+return (
+  "#" +
+  ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()
+);
 }
 
 function blendColors(top, bottom) {
@@ -69,68 +75,71 @@ function isPageDark(step = 100) {
     return medianBrightness < 128;
 }
 
-function createColorPreview(dark) {
-    let host = document.getElementById('color-picker-host');
+function createBadge(id, emoji, bgColor, position) {
+    let host = document.getElementById(id);
     if (!host) {
-        host = document.createElement('color-picker-host');
-        host.id = 'color-picker-host';
-        document.body.appendChild(host);
-        const shadow = host.attachShadow({ mode: 'open' });
-
-        const preview = document.createElement('div');
-        preview.id = 'color-picker-preview';
-        Object.assign(preview.style, {
-            all: 'unset',
+        host = document.createElement('div');
+        host.id = id;
+        Object.assign(host.style, {
             position: 'fixed',
-            bottom: '10px',
-            right: '10px',
+            bottom: position.bottom,
+            right: position.right,
+            zIndex: '999999',
+            pointerEvents: 'none',
+        });
+        document.body.appendChild(host);
+
+        const shadow = host.attachShadow({ mode: 'open' });
+        const badge = document.createElement('div');
+        badge.textContent = emoji;
+        Object.assign(badge.style, {
             width: '40px',
             height: '40px',
             borderRadius: '50%',
             border: '2px solid #fff',
-            boxShadow: '0 0 5px rgba(0,0,0,0.5)',
-            pointerEvents: 'none',
-            zIndex: '9999',
+            boxShadow: '0 0 6px rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '20px',
             fontFamily: 'system-ui',
-            backgroundColor: dark ? 'black' : 'white',
+            backgroundColor: bgColor,
+            color: bgColor === 'black' ? 'white' : 'black',
+            pointerEvents: 'none',
         });
-        preview.textContent = dark ? '🌙' : '☀️';
-
-        shadow.appendChild(preview);
-
-        const rect = preview.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        const color = getColorAt(centerX, centerY);
-        preview.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
-
-        return preview;
+        shadow.appendChild(badge);
+        return badge;
     } else {
-        return host.shadowRoot.querySelector('#color-picker-preview');
+        return host.shadowRoot?.querySelector('div');
     }
 }
 
-const dark = isPageDark(100);
-let colorPreview = createColorPreview(dark);
 
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        mutation.removedNodes.forEach((node) => {
-            if (node.id === 'color-picker-preview') {
-                colorPreview = createColorPreview(dark);
-            }
-        });
-    });
-});
-observer.observe(document.body, { childList: true });
+const dark = isPageDark(100);
+
+const darkBadge = createBadge(
+    'dark-mode-badge',
+    dark ? '🌙' : '☀️',
+    dark ? 'black' : 'white',
+    { bottom: '10px', right: '10px' }
+);
+
+const colorBadge = createBadge(
+    'color-picker-badge',
+    '',
+    dark ? 'black' : 'white',
+    { bottom: '10px', right: '60px' }
+);
 
 document.addEventListener('mousemove', (e) => {
-    let color = getColorAt(e.clientX, e.clientY);
-    
-    const rgb = `rgb(${color.r}, ${color.g}, ${color.b})`;
-    colorPreview.style.backgroundColor = rgb;
+    const color = getColorAt(e.clientX, e.clientY);
+    colorBadge.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
 });
+
+setInterval(() => {
+    const isDarkNow = isPageDark(100);
+    if (isDarkNow !== dark) {
+        darkBadge.style.backgroundColor = isDarkNow ? 'black' : 'white';
+        darkBadge.textContent = isDarkNow ? '🌙' : '☀️';
+    }
+}, 1000);
